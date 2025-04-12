@@ -31,6 +31,7 @@ Total Development Time: 14-17 hours across 3 days
 - Composer
 - MySQL 5.7 or higher
 - Git
+- Docker (optional)
 
 ### Local Development Setup
 
@@ -75,16 +76,51 @@ php artisan migrate
 php artisan serve
 ```
 
-### Deployment Setup (Render)
+### Docker Setup (Optional)
 
-1. Push your code to a Git repository
-2. Connect your repository to Render
-3. Create a new Web Service using the existing `render.yaml` configuration
-4. The deployment will automatically:
-   - Set up the MySQL database
-   - Install dependencies
-   - Generate application key
-   - Run migrations
+1. Make sure Docker and Docker Compose are installed on your system.
+
+2. Build and start the containers:
+```bash
+docker-compose up -d
+```
+
+3. Install dependencies:
+```bash
+docker-compose exec app composer install
+```
+
+4. Generate application key:
+```bash
+docker-compose exec app php artisan key:generate
+```
+
+5. Run migrations:
+```bash
+docker-compose exec app php artisan migrate
+```
+
+6. Access the application:
+- API will be available at: `http://localhost:8000`
+- Database will be available at: `localhost:3306`
+
+Useful Docker commands:
+```bash
+# View logs
+docker-compose logs -f
+
+# Stop containers
+docker-compose down
+
+# Rebuild containers
+docker-compose up -d --build
+
+# Access container shell
+docker-compose exec app bash
+
+# Run artisan commands
+docker-compose exec app php artisan [command]
+```
 
 ## API Constraints
 
