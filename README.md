@@ -2,7 +2,7 @@
 
 A RESTful API built with Laravel for managing purchase orders and suppliers.
 
-## Time Estimate (3-Day Plan)
+## Time Estimate (3-Day)
 
 ### Day 1: Setup and Core Features (5-6 hours)
 - Initial project setup and configuration (1 hour)
@@ -15,13 +15,8 @@ A RESTful API built with Laravel for managing purchase orders and suppliers.
 - Order Items implementation (2 hours)
 - Validation and business logic (2 hours)
 
-### Day 3: Polish and Deployment (4-5 hours)
-- API documentation setup (1.5 hours)
-- Error handling implementation (1 hour)
-- Deployment setup and configuration (1 hour)
-- Final deployment and verification (1 hour)
 
-Total Development Time: 14-17 hours across 3 days
+Total Development Time: 12-14 hours across 3 days
 
 ## Setup Instructions
 
@@ -103,24 +98,6 @@ docker-compose exec app php artisan migrate
 6. Access the application:
 - API will be available at: `http://localhost:8000`
 - Database will be available at: `localhost:3306`
-
-Useful Docker commands:
-```bash
-# View logs
-docker-compose logs -f
-
-# Stop containers
-docker-compose down
-
-# Rebuild containers
-docker-compose up -d --build
-
-# Access container shell
-docker-compose exec app bash
-
-# Run artisan commands
-docker-compose exec app php artisan [command]
-```
 
 ## API Constraints
 
