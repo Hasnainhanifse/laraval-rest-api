@@ -1,195 +1,65 @@
 <?php
-
 namespace App\Http\Controllers\Api\V1;
-
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreOrderItemRequest;
+use App\Http\Requests\UpdateOrderItemRequest;
+use App\Http\Resources\OrderItemResource;
 use App\Models\OrderItem;
 use App\Models\PurchaseOrder;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
+use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+
 
 class OrderItemController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index($purchaseOrderId, Request $request): JsonResponse
+    public function index(Request $request)
+    {
+        $perPage = $request->input('per_page', 15);
+        $orderItems = OrderItem::query()
+            ->when($request->purchase_order_id, function ($query, $purchaseOrderId) {
+                $query->where('purchase_order_id', $purchaseOrderId);
+            })
+            ->when($request->sort_by && $request->sort_direction, function ($query) use ($request) {
+                $query->orderBy($request->sort_by, $request->sort_direction);
+            }, function ($query) {
+                $query->latest();
+            })
+            ->paginate($perPage);
+        return new OrderItemResource($orderItems);
+    }
+    public function store(StoreOrderItemRequest $request): JsonResponse
+    {
+        $orderItem = OrderItem::create($request->validated());
+        return response()->json($orderItem);
+    }
+    public function show($purchase_order_id, $order_item_id): JsonResponse
     {
         try {
-            $purchaseOrder = PurchaseOrder::findOrFail($purchaseOrderId);
-            $perPage = $request->input('per_page', 15);
-            
-            return response()->json(
-                $purchaseOrder->orderItems()
-                    ->when($request->sort_by && $request->sort_direction, function ($query) use ($request) {
-                        $query->orderBy($request->sort_by, $request->sort_direction);
-                    }, function ($query) {
-                        $query->latest();
-                    })
-                    ->paginate($perPage)
-            );
+            $purchase_order = PurchaseOrder::findOrFail($purchase_order_id);
+            $order_item = OrderItem::findOrFail($order_item_id);
+
+            if ($order_item->purchase_order_id !== $purchase_order->id) {
+                return response()->json(['message' => 'Order item not found in this purchase order'], 404);
+            }
+
+            return response()->json($order_item);
         } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'message' => 'Purchase order not found',
-                'error' => 'The requested purchase order does not exist or has been deleted.'
-            ], 404);
+            if (str_contains($e->getMessage(), 'PurchaseOrder')) {
+                return response()->json(['message' => 'Purchase order not found'], 404);
+            }
+            return response()->json(['message' => 'Order item not found'], 404);
         }
     }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request, $purchaseOrderId): JsonResponse
+    public function update(UpdateOrderItemRequest $request, OrderItem $order_item): JsonResponse
     {
-        try {
-            $purchaseOrder = PurchaseOrder::findOrFail($purchaseOrderId);
-            
-            if ($purchaseOrder->isImmutable()) {
-                return response()->json(['message' => 'Cannot add items to an immutable purchase order.'], 422);
-            }
-
-            $validated = $request->validate([
-                'sku' => ['required', 'string'],
-                'description' => ['required', 'string'],
-                'qty' => ['required', 'integer', 'min:1'],
-                'unit_price' => ['required', 'numeric', 'min:0'],
-            ]);
-
-            try {
-                DB::beginTransaction();
-
-                $orderItem = $purchaseOrder->orderItems()->create($validated);
-
-                // Recalculate total amount
-                $purchaseOrder->total_amount = $purchaseOrder->calculateTotalAmount();
-                $purchaseOrder->save();
-
-                DB::commit();
-
-                return response()->json($orderItem, 201);
-            } catch (\Exception $e) {
-                DB::rollBack();
-                throw $e;
-            }
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'message' => 'Purchase order not found',
-                'error' => 'The requested purchase order does not exist or has been deleted.'
-            ], 404);
-        }
+        $order_item->update($request->validated());
+        return response()->json($order_item);
     }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show($purchaseOrderId, $orderItemId): JsonResponse
+    public function destroy(OrderItem $order_item): JsonResponse
     {
-        try {
-            $purchaseOrder = PurchaseOrder::findOrFail($purchaseOrderId);
-            $orderItem = OrderItem::findOrFail($orderItemId);
-            
-            if ($orderItem->purchase_order_id !== $purchaseOrder->id) {
-                return response()->json(['message' => 'Order item not found.'], 404);
-            }
-
-            return response()->json($orderItem);
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'message' => 'Resource not found',
-                'error' => 'The requested resource does not exist or has been deleted.'
-            ], 404);
-        }
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $purchaseOrderId, $orderItemId): JsonResponse
-    {
-        try {
-            $purchaseOrder = PurchaseOrder::findOrFail($purchaseOrderId);
-            $orderItem = OrderItem::findOrFail($orderItemId);
-            
-            if ($orderItem->purchase_order_id !== $purchaseOrder->id) {
-                return response()->json(['message' => 'Order item not found.'], 404);
-            }
-
-            if ($purchaseOrder->isImmutable()) {
-                return response()->json(['message' => 'Cannot modify items in an immutable purchase order.'], 422);
-            }
-
-            $validated = $request->validate([
-                'sku' => ['sometimes', 'string'],
-                'description' => ['sometimes', 'string'],
-                'qty' => ['sometimes', 'integer', 'min:1'],
-                'unit_price' => ['sometimes', 'numeric', 'min:0'],
-            ]);
-
-            try {
-                DB::beginTransaction();
-
-                $orderItem->update($validated);
-
-                // Recalculate total amount
-                $purchaseOrder->total_amount = $purchaseOrder->calculateTotalAmount();
-                $purchaseOrder->save();
-
-                DB::commit();
-
-                return response()->json($orderItem);
-            } catch (\Exception $e) {
-                DB::rollBack();
-                throw $e;
-            }
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'message' => 'Resource not found',
-                'error' => 'The requested resource does not exist or has been deleted.'
-            ], 404);
-        }
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($purchaseOrderId, $orderItemId): JsonResponse
-    {
-        try {
-            $purchaseOrder = PurchaseOrder::findOrFail($purchaseOrderId);
-            $orderItem = OrderItem::findOrFail($orderItemId);
-            
-            if ($orderItem->purchase_order_id !== $purchaseOrder->id) {
-                return response()->json(['message' => 'Order item not found.'], 404);
-            }
-
-            if ($purchaseOrder->isImmutable()) {
-                return response()->json(['message' => 'Cannot delete items from an immutable purchase order.'], 422);
-            }
-
-            try {
-                DB::beginTransaction();
-
-                $orderItem->delete();
-
-                // Recalculate total amount
-                $purchaseOrder->total_amount = $purchaseOrder->calculateTotalAmount();
-                $purchaseOrder->save();
-
-                DB::commit();
-
-                return response()->json(null, 204);
-            } catch (\Exception $e) {
-                DB::rollBack();
-                throw $e;
-            }
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'message' => 'Resource not found',
-                'error' => 'The requested resource does not exist or has been deleted.'
-            ], 404);
-        }
+        $order_item->delete();
+        return response()->json(null, 204);
     }
 }

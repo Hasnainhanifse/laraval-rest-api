@@ -35,14 +35,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Purchase Order routes
     Route::apiResource('purchase-orders', PurchaseOrderController::class);
-    Route::post('purchase-orders/{id}/send-approval', [PurchaseOrderController::class, 'sendApproval']);
+    Route::post('purchase-orders/{purchase_order}/send-approval', [PurchaseOrderController::class, 'sendApproval']);
 
     // Order Item routes (nested under purchase orders)
-    Route::get('purchase-orders/{purchase_order_id}/items', [OrderItemController::class, 'index']);
-    Route::post('purchase-orders/{purchase_order_id}/items', [OrderItemController::class, 'store']);
-    Route::get('purchase-orders/{purchase_order_id}/items/{order_item_id}', [OrderItemController::class, 'show']);
-    Route::put('purchase-orders/{purchase_order_id}/items/{order_item_id}', [OrderItemController::class, 'update']);
-    Route::delete('purchase-orders/{purchase_order_id}/items/{order_item_id}', [OrderItemController::class, 'destroy']);
+    Route::get('purchase-orders/{purchase_order}/items', [OrderItemController::class, 'index']);
+    Route::post('purchase-orders/{purchase_order}/items', [OrderItemController::class, 'store']);
+    Route::get('purchase-orders/{purchase_order}/items/{order_item}', [OrderItemController::class, 'show']);
+    Route::put('purchase-orders/{purchase_order}/items/{order_item}', [OrderItemController::class, 'update']);
+    Route::delete('purchase-orders/{purchase_order}/items/{order_item}', [OrderItemController::class, 'destroy']);
 
     // Approval Logs route
     Route::get('approval-logs', [ApprovalLogController::class, 'index']);
