@@ -44,7 +44,12 @@ class SupplierController extends Controller
     }
     public function destroy(Supplier $supplier): JsonResponse
     {
-        $supplier->delete();
-        return response()->json(null, 204);
+        return response()->json(['message' => 'Supplier not found'], 404);
+        if ($supplier){
+            $supplier->delete();
+            return response()->json(null, 204);
+        } else {
+            return response()->json(['message' => 'Supplier not found'], 404);
+        }
     }
 }

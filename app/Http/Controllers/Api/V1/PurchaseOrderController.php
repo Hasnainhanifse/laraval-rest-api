@@ -37,7 +37,7 @@ class PurchaseOrderController extends Controller
     public function index(Request $request)
     {
         $perPage = $request->input('per_page', 15);
-        
+
         $purchaseOrders = PurchaseOrder::query()
             ->with(['supplier', 'orderItems'])
             ->when($request->status, function ($query, $status) {
@@ -67,10 +67,10 @@ class PurchaseOrderController extends Controller
             })
             ->paginate($perPage);
 
-            $purchaseOrders->getCollection()->transform(function ($purchaseOrder) {
-                $purchaseOrder->total_amount = $purchaseOrder->calculateTotalAmount();
-                return $purchaseOrder;
-            });
+        $purchaseOrders->getCollection()->transform(function ($purchaseOrder) {
+            $purchaseOrder->total_amount = $purchaseOrder->calculateTotalAmount();
+            return $purchaseOrder;
+        });
 
         return new PurchaseOrderResource($purchaseOrders);
     }
@@ -84,7 +84,7 @@ class PurchaseOrderController extends Controller
             DB::beginTransaction();
 
             $validated = $request->validated();
-            
+
             // Create the purchase order
             $purchaseOrder = PurchaseOrder::create([
                 'supplier_id' => $validated['supplier_id'],
@@ -103,7 +103,7 @@ class PurchaseOrderController extends Controller
                         'unit_price' => $item['unit_price'],
                     ]);
                 }
-                
+
                 // Only recalculate if total_amount wasn't provided
                 if (!isset($validated['total_amount'])) {
                     $purchaseOrder->total_amount = $purchaseOrder->calculateTotalAmount();
@@ -112,16 +112,16 @@ class PurchaseOrderController extends Controller
             }
 
             DB::commit();
-            
+
             // Load relationships for response
             $purchaseOrder->load(['supplier', 'orderItems']);
-            
+
             return response()->json($purchaseOrder);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error creating purchase order: ' . $e->getMessage());
             Log::error($e->getTraceAsString());
-            
+
             return response()->json([
                 'message' => 'Failed to create purchase order',
                 'error' => $e->getMessage()
@@ -136,10 +136,10 @@ class PurchaseOrderController extends Controller
     {
         try {
             $purchase_order->load(['supplier', 'orderItems']);
-            
+
             $responseData = $purchase_order->toArray();
             $responseData['total_amount'] = $purchase_order->calculateTotalAmount();
-            
+
             return response()->json($responseData);
         } catch (ModelNotFoundException $e) {
             return response()->json(['message' => 'Purchase order not found'], 404);
@@ -153,30 +153,30 @@ class PurchaseOrderController extends Controller
     {
         try {
             DB::beginTransaction();
-            
+
             $validated = $request->validated();
-            
+
             // Check if purchase order can be modified
             if ($purchase_order->isImmutable()) {
                 return response()->json([
                     'message' => 'Purchase order cannot be modified in its current status'
                 ], 422);
             }
-            
+
             // Update purchase order
             $purchase_order->update([
                 'supplier_id' => $validated['supplier_id'] ?? $purchase_order->supplier_id,
                 'status' => $validated['status'] ?? $purchase_order->status,
                 'total_amount' => $validated['total_amount'] ?? $purchase_order->total_amount,
             ]);
-            
+
             // Update or create order items
             if (isset($validated['items']) && is_array($validated['items'])) {
                 // Delete existing items if replace flag is set
                 if (isset($validated['replace_items']) && $validated['replace_items']) {
                     $purchase_order->orderItems()->delete();
                 }
-                
+
                 foreach ($validated['items'] as $item) {
                     if (isset($item['id'])) {
                         // Update existing item
@@ -196,19 +196,19 @@ class PurchaseOrderController extends Controller
                         ]);
                     }
                 }
-                
+
                 // Only recalculate if total_amount wasn't provided
                 if (!isset($validated['total_amount'])) {
                     $purchase_order->total_amount = $purchase_order->calculateTotalAmount();
                     $purchase_order->save();
                 }
             }
-            
+
             DB::commit();
-            
+
             // Load relationships for response
             $purchase_order->load(['supplier', 'orderItems']);
-            
+
             return response()->json($purchase_order);
         } catch (ModelNotFoundException $e) {
             DB::rollBack();
@@ -230,13 +230,6 @@ class PurchaseOrderController extends Controller
     public function destroy(PurchaseOrder $purchase_order): JsonResponse
     {
         try {
-            // Check if purchase order can be deleted
-            if ($purchase_order->status !== 'draft') {
-                return response()->json([
-                    'message' => 'Only draft purchase orders can be deleted'
-                ], 422);
-            }
-            
             $purchase_order->delete();
             return response()->json(null, 204);
         } catch (ModelNotFoundException $e) {
@@ -256,29 +249,29 @@ class PurchaseOrderController extends Controller
      */
     public function sendApproval(PurchaseOrder $purchase_order): JsonResponse
     {
-        try {            
+        try {
             if ($purchase_order->orderItems->isEmpty()) {
                 return response()->json(['message' => 'Cannot send an empty purchase order for approval.'], 422);
             }
-            
+
             try {
                 DB::beginTransaction();
-                
+
                 // Update status to pending
                 $purchase_order->status = 'pending';
                 $purchase_order->save();
-                
+
                 // Log the approval action
                 $this->approvalLogService->logApproval([
                     'purchase_order_id' => $purchase_order->id,
-                    'user_id' => auth()->id(),
+                    'user_id' => auth()->id,
                     'action' => 'send_approval',
                     'status' => 'pending',
                     'notes' => 'Purchase order sent for approval',
                 ]);
-                
+
                 DB::commit();
-                
+
                 return response()->json($purchase_order->load(['supplier', 'orderItems']));
             } catch (\Exception $e) {
                 DB::rollBack();
