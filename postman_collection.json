@@ -740,6 +740,101 @@
                             ]
                         }
                     }
+                },
+                {
+                    "name": "Email",
+                    "item": [
+                        {
+                            "name": "Send Email",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"to\": [\"recipient1@example.com\", \"recipient2@example.com\"],\n    \"cc\": [\"cc1@example.com\"],\n    \"bcc\": [\"bcc1@example.com\"],\n    \"subject\": \"Test Email\",\n    \"body\": \"<h1>Hello!</h1><p>This is a test email from the API.</p>\",\n    \"altBody\": \"Hello! This is a test email from the API.\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/email/send",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "email",
+                                        "send"
+                                    ]
+                                },
+                                "description": "Send an email through the API"
+                            },
+                            "response": [
+                                {
+                                    "name": "Success",
+                                    "originalRequest": {
+                                        "method": "POST",
+                                        "header": [],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"to\": [\"recipient1@example.com\"],\n    \"subject\": \"Test Email\",\n    \"body\": \"<h1>Hello!</h1><p>This is a test email.</p>\"\n}"
+                                        },
+                                        "url": {
+                                            "raw": "{{base_url}}/api/email/send",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "email", "send"]
+                                        }
+                                    },
+                                    "status": "OK",
+                                    "code": 200,
+                                    "_postman_previewlanguage": "json",
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "{\n    \"message\": \"Email sent successfully\"\n}"
+                                },
+                                {
+                                    "name": "Validation Error",
+                                    "originalRequest": {
+                                        "method": "POST",
+                                        "header": [],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"to\": [],\n    \"subject\": \"\",\n    \"body\": \"\"\n}"
+                                        },
+                                        "url": {
+                                            "raw": "{{base_url}}/api/email/send",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "email", "send"]
+                                        }
+                                    },
+                                    "status": "Bad Request",
+                                    "code": 400,
+                                    "_postman_previewlanguage": "json",
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "{\n    \"error\": \"Validation failed\",\n    \"messages\": {\n        \"to\": [\"The to field must have at least 1 items.\"],\n        \"subject\": [\"The subject field is required.\"],\n        \"body\": [\"The body field is required.\"]\n    }\n}"
+                                }
+                            ]
+                        }
+                    ]
                 }
             ]
         }

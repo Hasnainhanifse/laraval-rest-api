@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\PurchaseOrderController;
 use App\Http\Controllers\Api\V1\OrderItemController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\ApprovalLogController;
+use App\Http\Controllers\Api\V1\EmailController;
 
 /*
 |--------------------------------------------------------------------------
@@ -46,4 +47,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Approval Logs route
     Route::get('approval-logs', [ApprovalLogController::class, 'index']);
-}); 
+
+    Route::post('email/send', [EmailController::class, 'send']);
+});
+// Route::get('email/send', function () {
+//     $emailBody = "<html><body style='font: 14px Georgia, serif; margin: 0; padding: 0;'><label style='display: block;'>Dear Team,</label><br /><br />Welcome to Panda Cube<br /><br /><b>Panda Cube</b><br /><hr style='border: 1px solid #FF9900;'/>System generated message from Cube. Please DO NOT reply.<br /><br /></body></html>";
+//     $emailSubject = 'test';
+//     return new App\Mail\GenericEmail($emailBody, $emailSubject, '');
+// });
